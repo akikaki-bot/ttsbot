@@ -1,0 +1,25 @@
+{
+  "name": "new-ttsbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "@discordjs/opus": "^0.9.0",
+    "@discordjs/voice": "^0.16.1",
+    "axios": "^1.6.7",
+    "discord.js": "^14.14.1",
+    "ffmpeg-static": "^5.2.0",
+    "libsodium-wrappers": "^0.7.13"
+  }
+}

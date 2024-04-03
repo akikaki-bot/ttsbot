@@ -1,0 +1,4 @@
+node_modules/
+production/
+temp/
+package-lock.json
