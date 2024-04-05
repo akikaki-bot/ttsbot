@@ -68,7 +68,7 @@ client.on('messageCreate', async message => {
         console.log(`[TTS] ${message.content}`)
         //const EmojiRegix = /^\p{RGI_Emoji}$/v
         //<:hikakin_:978295056349929542>
-
+        
 
         const speakerId = await speakerDB.getSpeaker( message.author.id );
         const ReplacedContent = await messageContentFilter( message.guildId as string , message.content )

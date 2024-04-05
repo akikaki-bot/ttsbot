@@ -30,7 +30,7 @@ export async function messageContentFilter( guildId : string , messageContent : 
                                     //.replace(EmojiRegix , "絵文字")
                                     .replace(DiscordEmojiRegix, "絵文字")
                                     .replace(URLRegix, "URL")
-                                    //.replace(DiscordUniqueId , "あいでぃー")
+                                    .replace(DiscordUniqueId , "あいでぃー")
 
     return messageContent;
 }
