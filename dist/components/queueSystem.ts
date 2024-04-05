@@ -13,6 +13,7 @@ export class QueueSystem {
 
     public getNumberOfQueue( guildId : string ) : number {
         const queue = this.queue.find( q => q.guildId === guildId );
+        console.log( queue.queue.keys() )
         if( queue ){
             return queue.queue.size;
         }
@@ -25,6 +26,7 @@ export class QueueSystem {
 
         const queue = this.queue.find( q => q.guildId === guildId );
         if( queue ){
+            accent.accent["speedScale"] = 1.1;
             queue.queue.set(queueText, accent.accent );
         } else {
             this.queue.push({
@@ -36,7 +38,6 @@ export class QueueSystem {
 
     public getFirstQueue( guildId : string ) : object | undefined {
         const queue = this.queue.find( q => q.guildId === guildId );
-        //console.log(queue.queue.entries().next().value[1])
         if( queue ){
             if(typeof queue.queue.entries().next().value === "undefined") return;
             return queue.queue.entries().next().value[1];

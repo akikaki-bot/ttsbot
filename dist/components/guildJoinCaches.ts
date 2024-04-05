@@ -19,6 +19,10 @@ export class GuildVoiceChannelCaches {
     public disconnectVoiceChannel( messageChannelId : MessageChannelId ) : void {
         this.CACHE_voiceChannel.delete(messageChannelId);
     }
+
+    public getDataFromGuildId( guildId : GuildId ){
+        return Array.from(this.CACHE_voiceChannel.values()).find( data => data.guildId === guildId );
+    }
 }
 
 export interface TTSInfomationData {
