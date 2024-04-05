@@ -1,8 +1,11 @@
+import { PUBLIC_VOICEVOXAPI_KEY } from "../secrets";
+import { MakeVoiceBuffer } from "./makeVoiceBuffer"
 
+const makevoicebuffer = new MakeVoiceBuffer(PUBLIC_VOICEVOXAPI_KEY)
 
 export class QueueSystem {
 
-    private queue : { guildId : string , queue : Map<string,string> }[] = [];
+    private queue : { guildId : string , queue : Map<string, object> }[] = [];
 
     constructor(){
         this.queue = [];
@@ -16,23 +19,27 @@ export class QueueSystem {
         return 0;
     }
 
-    public addQueue( queueText : string , guildId : string ) : void {
+    public async addQueue( queueText : string , guildId : string , speakerId : number = 3 ) : Promise<void> {
+        const accent = await makevoicebuffer.getAccent( queueText , speakerId)
+        if( accent.status === 0 ) return;
+
         const queue = this.queue.find( q => q.guildId === guildId );
         if( queue ){
-            queue.queue.set(queueText,queueText);
+            queue.queue.set(queueText, accent.accent );
         } else {
             this.queue.push({
                 guildId : guildId,
-                queue : new Map([[queueText,queueText]])
+                queue : new Map([[queueText,accent.accent]])
             });
         }
     }
 
-    public getFirstQueue( guildId : string ) : string | undefined {
+    public getFirstQueue( guildId : string ) : object | undefined {
         const queue = this.queue.find( q => q.guildId === guildId );
+        //console.log(queue.queue.entries().next().value[1])
         if( queue ){
             if(typeof queue.queue.entries().next().value === "undefined") return;
-            return queue.queue.entries().next().value[0];
+            return queue.queue.entries().next().value[1];
         }
     }
 

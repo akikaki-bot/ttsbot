@@ -1,4 +1,5 @@
 import {
+    ActivityType,
     Client,
     GatewayIntentBits,
     GuildMember,
@@ -12,7 +13,9 @@ import { GuildVoiceChannelCaches } from "./components/guildJoinCaches";
 import { EmbedBuilder } from "@discordjs/builders";
 import { VoiceConnection, VoiceConnectionStatus, joinVoiceChannel } from "@discordjs/voice";
 import { textToSpeach } from "./components/textToSpeach";
-import { DISCORD_BOT_TOKEN } from "./secrets";
+import { DISCORD_BOT_TOKEN, PUBLIC_VOICEVOXAPI_KEY } from "./secrets";
+import { UserDatabase } from "./components/database";
+import { SelectSpeaker } from "./components/selectSpeaker";
 
 const client = new Client({
     intents: [
@@ -26,21 +29,33 @@ const client = new Client({
 });
 
 const queue = new QueueSystem();
-const voiceBuffer = new MakeVoiceBuffer("S_616741c7w-634");
+const voiceBuffer = new MakeVoiceBuffer(PUBLIC_VOICEVOXAPI_KEY);
 const guildJoinedCache = new Map<string, { connectionManager : VoiceConnection }>();
 const guildCache = new GuildVoiceChannelCaches();
+const speakerDB = new UserDatabase();
+
+const SelectCommand = new SelectSpeaker();
 
 
 client.on("ready" , async ( ) => {
     console.log(`[READY] Logged in as ${client.user?.tag}!`)
+
+    client.user?.setActivity({
+        name : "/join | ただの TTSBot",
+        type : ActivityType.Playing
+    })
     
+    /*
     const usage = await voiceBuffer.getUsage();
     if( typeof usage.points !== "undefined" ){
         console.log(`[USAGE] Points : ${usage.points} , Reset in : ${usage.resetInHours} hours`);   
     }
+    */
         
     await client.application?.commands.set( CommandList )
 })
+
+
 
 client.on('messageCreate', async message => {
     if( message.author.bot ) return;
@@ -54,13 +69,21 @@ client.on('messageCreate', async message => {
         const URLRegix = /https?:\/\/[\w!?/+\-_~;.,*&@#$%()'[\]]+/g
         const DiscordUniqueId = /[0-9]{18}/g
 
+        if( message.content.startsWith(";")) return;
+
+        if( message.content.indexOf("```") !== -1 ){
+            message.content.slice( message.content.indexOf("```") + 3 , message.content.lastIndexOf("```") );
+        }
+
+        const speakerId = await speakerDB.getSpeaker( message.author.id );
+
         const ReplacedContent = message.content
                                         //.replace(EmojiRegix , "絵文字")
                                         .replace(DiscordEmojiRegix, "絵文字")
                                         .replace(URLRegix, "URL")
                                         //.replace(DiscordUniqueId , "あいでぃー")
 
-        queue.addQueue( ReplacedContent, message.guildId as string );
+        await queue.addQueue( ReplacedContent, message.guildId as string , speakerId ? parseInt(speakerId) : 3 );
         const connection = guildJoinedCache.get( message.guildId as string );
         if(!connection || typeof connection === "undefined") {
             const channel = message.guild?.channels.cache.get(message.channelId);
@@ -90,9 +113,24 @@ client.on('messageCreate', async message => {
     }
 })
 
+
 client.on('interactionCreate', async interaction => {
+
+    if( interaction.isStringSelectMenu() ){
+        if( interaction.customId === "select.speaker"){
+            await SelectCommand.selectSpeaker( interaction );
+        }
+        if( interaction.customId === "select.emotion"){
+            await SelectCommand.setEmotion( interaction );
+        }
+    }
+
     if( !interaction.isCommand() ) return;
     const { commandName } = interaction;
+
+    if( commandName === "speaker"){
+        SelectCommand.firstReply( interaction )
+    }
 
     if( commandName === "join" ){
         const isJoinedChannel = guildJoinedCache.has( interaction.guildId as string );
@@ -150,7 +188,15 @@ client.on('interactionCreate', async interaction => {
 
             await interaction.reply({
                 embeds : [
-                    new EmbedBuilder().setTitle('TTS機能を有効にしました。').setDescription(`このTTSBotはVoiceVox並びにVoiceVox公開APIを利用しています。\nこのBOTは非公式のBOTです。\n利用時はVoiceVoxの利用規約に従ってください。`)
+                    new EmbedBuilder().setTitle('TTS機能を有効にしました。').setDescription(`
+                        【注意】
+                        このBotは非公式のBotです。
+                        利用にはVoiceVoxの利用規約に従う必要があります。
+                        詳しくは [公式の利用規約](https://voicevox.hiroshiba.jp/term/) をご確認ください。
+
+                        また、本ボットはヒホ氏によって公開されているアプリケーションである、VoiceVoxのエンジンを利用しています。
+                        Youtube等で本Botを利用した動画を公開する場合は、「VoiceVox : ずんだもん」 等のクレジット表記が必要となりますので、ご注意ください。
+                    `)
                 ]
             });
         }
@@ -203,7 +249,15 @@ client.on('interactionCreate', async interaction => {
 
             await interaction.reply({
                 embeds : [
-                    new EmbedBuilder().setTitle('TTS機能を無効にしました。').setDescription(`このTTSBotはVoiceVox並びにVoiceVox公開APIを利用しています。\nこのBOTは非公式のBOTです。\n利用時はVoiceVoxの利用規約に従ってください。`)
+                    new EmbedBuilder().setTitle('TTS機能を無効にしました。').setDescription(`
+                        【注意】
+                        このBotは非公式のBotです。
+                        利用にはVoiceVoxの利用規約に従う必要があります。
+                        詳しくは [公式の利用規約](https://voicevox.hiroshiba.jp/term/) をご確認ください。
+
+                        また、本ボットはヒホ氏によって公開されているアプリケーションである、VoiceVoxのエンジンを利用しています。
+                        Youtube等で本Botを利用した動画を公開する場合は、「VoiceVox : ずんだもん」 等のクレジット表記が必要となりますので、ご注意ください。
+                    `)
                 ]
             });
         }

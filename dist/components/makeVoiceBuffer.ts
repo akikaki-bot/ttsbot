@@ -15,13 +15,31 @@ export class MakeVoiceBuffer {
 
     }
 
+    public async makeVoiceBufferFromAccent( accent : object , speakerId : number = 3) : Promise<VoiceBufferResponse> {
+        const buffer = await this.getVoiceBufferFromAccent( accent , speakerId );
+        if( buffer.status === 1 ){
+            return {
+                status : 1,
+                audioBuffer : buffer.audioBuffer
+            }
+        } else {
+            return {
+                status : 0,
+                message : buffer.message
+            }
+        }
+    }
+
     public async makeVoiceBuffer( text : string ) : Promise<VoiceBufferResponse> {
         console.log(`[MakeVoiceBuffer] makeVoiceBuffer : ${text}`)
         if( this.CACHE_buffer.has(text) ){
             return { status : 1 , audioBuffer : this.CACHE_buffer.get(text) as Buffer }
         }
         else {
-            const buffer = await this.getVoiceBuffer(text);
+            const accent = await this.getAccent( text )
+            console.log( accent.status )
+            if( accent.status === 0 ) return { status : 0 , message : accent.message }
+            const buffer = await this.getVoiceBufferFromAccent( accent.accent );
             if( buffer.status === 1 ){
                 this.CACHE_buffer.set(
                     text,
@@ -54,6 +72,42 @@ export class MakeVoiceBuffer {
             throw new Error("Failed to fetch");
         }
     }
+
+    public async getAccent( text : string , speakerId : number = 3 ) : Promise<{ status : 1 , accent : object } | { status : 0 , message : string }> {
+        const response = await fetch(`http://127.0.0.1:50021/audio_query?text=${encodeURIComponent( text )}&speaker=${speakerId}`, {
+            method : "POST",
+            headers : {
+                "Content-Type" : "application/json"
+            },
+        })
+
+        if( !response.ok ) {
+            return { status : 0 , message : JSON.stringify(await response.json()) }
+        }
+
+        const json = await response.json();
+        return { status : 1 , accent : json }
+    }
+
+    private async getVoiceBufferFromAccent( accent : object , speakerId : number = 3 ) : Promise<VoiceBufferResponse> {
+        const response = await fetch(`http://127.0.0.1:50021/synthesis?speaker=${speakerId}`, {
+            method : "POST",
+            headers : {
+                "Content-Type" : "application/json",
+                'accept': 'audio/wav',
+            },
+            body : JSON.stringify(accent)
+        })
+
+        if( !response.ok ) {
+            return { status : 0 , message : JSON.stringify(await response.json()) }
+        }
+
+        const buffer = await response.arrayBuffer();
+        return { status : 1 , audioBuffer : Buffer.from(buffer) }
+    }
+
+
 
     private async getVoiceBuffer( text : string ) : Promise<VoiceBufferResponse> {
         const response = await fetch(`${this.API_URL}v2/voicevox/audio?text=${text}&key=${this.apiKey}`)

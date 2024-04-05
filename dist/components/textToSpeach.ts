@@ -4,7 +4,9 @@ import { QueueSystem } from "./queueSystem";
 import { MakeVoiceBuffer } from "./makeVoiceBuffer";
 import { Readable } from "stream";
 import { GuildVoiceChannelCaches } from "./guildJoinCaches";
+import { UserDatabase } from "./database";
 
+const userSpeaker = new UserDatabase();
 
 export async function textToSpeach(
     _connection : { connectionManager : VoiceConnection } ,
@@ -27,8 +29,9 @@ export async function textToSpeach(
     console.log(`[TTS] Status ${connection.connectionManager.state.status} ${connection.connectionManager.joinConfig.guildId}`)
     
     const queueText = queue.getFirstQueue( message.guildId as string );
+    const speaker = await userSpeaker.getSpeaker( message.author.id );
     if( queueText ){
-        const buffer = await voiceBuffer.makeVoiceBuffer(queueText);
+        const buffer = await voiceBuffer.makeVoiceBufferFromAccent( queueText , speaker ? parseInt(speaker) : 3);
         if( buffer.status === 1 ){
             const readable = Readable.from(buffer.audioBuffer);
             const resource = createAudioResource(readable , { inlineVolume: true });
@@ -79,7 +82,7 @@ export async function textToSpeach(
             const channel = message.guild?.channels.cache.get(message.channelId);
             if( channel?.isTextBased() && channel instanceof ( TextChannel || VoiceChannel )){
                 await channel.send({
-                    content : `音声の生成に失敗しました。`
+                    content : `音声の生成に失敗しました。Error : ${buffer.message}`
                 })
             }
             return;
